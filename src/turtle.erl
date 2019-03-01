@@ -35,7 +35,7 @@
 -export([
 	declare/2, declare/3,
 	open_channel/1, open_connection/1,
-	consume/2, cancel/2,
+	consume/2, consume/3, cancel/2,
 	qos/2
 ]).
 
@@ -287,11 +287,17 @@ await(publisher, Name, Timeout) ->
 %% @doc consume/2 starts consumption on a channel with default parameters
 %% @end
 %% @private
+consume(Channel, #'basic.consume' {} = Consume) ->
+    #'basic.consume_ok' { consumer_tag = Tag } = amqp_channel:call(Channel, Consume),
+    {ok, Tag};
 consume(Channel, Queue) ->
-   Sub = #'basic.consume' { queue = Queue },
-   #'basic.consume_ok' { consumer_tag = Tag } =
-       amqp_channel:call(Channel, Sub),
-   {ok, Tag}.
+    consume(Channel, #'basic.consume' { queue = Queue }).
+
+%% @doc consume/3 starts consumption on a channel with default parameters
+%% @end
+%% @private
+consume(Channel, Queue, NoAck) when is_boolean(NoAck) ->
+    consume(Channel, #'basic.consume' { queue = Queue, no_ack = NoAck }).
 
 
 %% @doc cancel/2 stop consumption on a channel again.
